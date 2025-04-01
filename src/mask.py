@@ -1,4 +1,5 @@
 import random
+from PIL import Image
 
 class Mask:
     def __init__(self, rows, columns):
@@ -25,3 +26,20 @@ class Mask:
 
             if self.enabled[row][column]:
                 return (row, column)
+            
+    def from_PNG(file):
+        masked_color_enabled = (0, 0, 0)
+
+        image = Image.open(file).convert("RGB")
+        pixels = image.load()
+
+        mask = Mask(image.height, image.width)
+
+        for row in range(mask.rows):
+            for column in range(mask.columns):
+                if pixels[column, row] == masked_color_enabled:
+                    mask.set_is_enabled(row, column, 1)
+                else:
+                    mask.set_is_enabled(row, column, 0)
+        
+        return mask

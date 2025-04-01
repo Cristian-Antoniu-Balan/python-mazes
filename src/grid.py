@@ -66,7 +66,7 @@ class Grid:
     
     def generateImg(self, cell_size = 10):
         background = 'white'
-        wall = 'red'
+        wall = (255, 0, 0)
         half_wall_width = 2
     
         width = cell_size * self.columns + half_wall_width
@@ -109,8 +109,8 @@ class Grid:
     
     def generateSvg(self, cell_size = 10):
         wall_width = 2
-
-        wall_color = 'red'
+        background_color = "white"
+        wall_color = "black"
 
         def cell_coords(cell, cell_size = cell_size, wall_width = wall_width):
             x1 = cell.column * cell_size + wall_width / 2
@@ -128,7 +128,10 @@ class Grid:
         def line(x1 = 0, y1 = 0, x2 = 0, y2 = 0, width = wall_width, color = wall_color):
             return f"<line x1=\"{x1}\" y1=\"{y1}\" x2=\"{x2}\" y2=\"{y2}\" stroke-width=\"{width}\" stroke=\"{color}\" />"
         
+        background = f"<rect width=\"100%\" height=\"100%\" fill=\"{background_color}\"/>"
+
         data = [f"<svg height=\"{total_height}\" width=\"{total_width}\" xmlns=\"http://www.w3.org/2000/svg\">"]
+        data.append(background)
 
         for cell in self.each_cell():
             if cell is None: continue
