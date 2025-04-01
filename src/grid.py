@@ -3,6 +3,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageColor
 
 from cell import Cell
 import constants
+import defaults
 
 class Grid:
     def __init__(self, rows, columns, mode = ''):
@@ -64,16 +65,19 @@ class Grid:
                 end = ' ' if column < self.columns - 1 else '\r\n'
                 print(self.grid[row][column].show() if self.grid[row][column] else 'X,X', end=end)
     
-    def generateImg(self, cell_size = 10):
-        background = 'white'
-        wall = (255, 0, 0)
-        half_wall_width = 2
+    def generateImg(self, cell_size = defaults.cell_size):
+        cell_size = defaults.min_cell_size(cell_size)
+        background_color = defaults.background_color_RGB
+        wall_color = defaults.wall_color_RGB
+        half_wall_width = defaults.half_wall_width(cell_size)
+        font_size = defaults.font_size_ratio * cell_size
+        font_color = defaults.font_color_RGB
     
         width = cell_size * self.columns + half_wall_width
         height = cell_size * self.columns + half_wall_width
 
-        img = Image.new('RGBA', (width, height), background)
-        font = ImageFont.truetype('arial', 30)
+        img = Image.new('RGBA', (width, height), background_color)
+        font = ImageFont.truetype('arial', font_size)
         def color(intensity = 0):
             return (ImageColor.getrgb('blue') + (intensity,))
 
@@ -88,7 +92,7 @@ class Grid:
                 case constants.MODE_DISTANCE | constants.MODE_PATH:
                     if self.mode == constants.MODE_PATH and self.contents_of(cell) == 0:
                         ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(255))
-                    ImageDraw.Draw(img).text(((x1 + x2) / 2, (y1 + y2) / 2), f'{self.contents_of(cell)}', 'black', font, 'mm', 1, 'center')
+                    ImageDraw.Draw(img).text(((x1 + x2) / 2, (y1 + y2) / 2), f'{self.contents_of(cell)}', font_color, font, 'mm', 1, 'center')
                 case constants.MODE_COLOR:
                     ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(self.contents_of(cell)))
                     # define a better way to find start and end cells
@@ -99,36 +103,37 @@ class Grid:
                 case _:
                     pass
 
-            if cell.north is None: ImageDraw.Draw(img).line((x1, y1, x2, y1), wall, 2 * half_wall_width)
-            if cell.west is None: ImageDraw.Draw(img).line((x1, y1, x1, y2), wall, 2 * half_wall_width)
+            if cell.north is None: ImageDraw.Draw(img).line((x1, y1, x2, y1), wall_color, 2 * half_wall_width)
+            if cell.west is None: ImageDraw.Draw(img).line((x1, y1, x1, y2), wall_color, 2 * half_wall_width)
 
-            if not cell.is_linked(cell.east): ImageDraw.Draw(img).line((x2, y1, x2, y2), wall, 2 * half_wall_width)
-            if not cell.is_linked(cell.south): ImageDraw.Draw(img).line((x1, y2, x2, y2), wall, 2 * half_wall_width)
+            if not cell.is_linked(cell.east): ImageDraw.Draw(img).line((x2, y1, x2, y2), wall_color, 2 * half_wall_width)
+            if not cell.is_linked(cell.south): ImageDraw.Draw(img).line((x1, y2, x2, y2), wall_color, 2 * half_wall_width)
 
         return img
     
-    def generateSvg(self, cell_size = 10):
-        wall_width = 2
-        background_color = "white"
-        wall_color = "black"
+    def generateSvg(self, cell_size = defaults.cell_size):
+        cell_size = defaults.min_cell_size(cell_size)
+        half_wall_width = defaults.half_wall_width(cell_size)
+        background_color = defaults.background_color_RGB
+        wall_color = defaults.wall_color_RGB
 
-        def cell_coords(cell, cell_size = cell_size, wall_width = wall_width):
-            x1 = cell.column * cell_size + wall_width / 2
-            y1 = cell.row * cell_size + wall_width / 2
-            x2 = (cell.column + 1) * cell_size + wall_width / 2
-            y2 = (cell.row + 1) * cell_size + wall_width / 2
+        def cell_coords(cell, cell_size = cell_size, half_wall_width = half_wall_width):
+            x1 = cell.column * cell_size + half_wall_width
+            y1 = cell.row * cell_size + half_wall_width
+            x2 = (cell.column + 1) * cell_size + half_wall_width
+            y2 = (cell.row + 1) * cell_size + half_wall_width
             xm = (x1 + x2) / 2
             ym = (y1 + y2) / 2
 
             return [x1, x2, y1, y2, xm, ym]
 
-        total_width = cell_size * self.columns + wall_width
-        total_height = cell_size * self.rows + wall_width
+        total_width = cell_size * self.columns + 2 * half_wall_width
+        total_height = cell_size * self.rows + 2 * half_wall_width
 
-        def line(x1 = 0, y1 = 0, x2 = 0, y2 = 0, width = wall_width, color = wall_color):
-            return f"<line x1=\"{x1}\" y1=\"{y1}\" x2=\"{x2}\" y2=\"{y2}\" stroke-width=\"{width}\" stroke=\"{color}\" />"
+        def line(x1 = 0, y1 = 0, x2 = 0, y2 = 0, width = 2 * half_wall_width, color = wall_color):
+            return f"<line x1=\"{x1}\" y1=\"{y1}\" x2=\"{x2}\" y2=\"{y2}\" stroke-width=\"{width}\" stroke=\"RGB{color}\" />"
         
-        background = f"<rect width=\"100%\" height=\"100%\" fill=\"{background_color}\"/>"
+        background = f"<rect width=\"100%\" height=\"100%\" fill=\"RGB{background_color}\"/>"
 
         data = [f"<svg height=\"{total_height}\" width=\"{total_width}\" xmlns=\"http://www.w3.org/2000/svg\">"]
         data.append(background)
