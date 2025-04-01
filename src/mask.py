@@ -1,6 +1,8 @@
 import random
 from PIL import Image
 
+import defaults
+
 class Mask:
     def __init__(self, rows, columns):
         self.rows = rows
@@ -28,7 +30,7 @@ class Mask:
                 return (row, column)
             
     def from_PNG(file):
-        masked_color_enabled = (0, 0, 0)
+        masked_color_enabled = defaults.mask_color_enabled_RGB
 
         image = Image.open(file).convert("RGB")
         pixels = image.load()

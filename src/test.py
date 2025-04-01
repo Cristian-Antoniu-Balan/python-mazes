@@ -20,6 +20,8 @@ import constants
 
 # grid = Grid(10, 10)
 # grid = DistanceGrid(15, 15, constants.MODE_COLOR)
+cell_size = 50
+grid = DistanceGrid(8, 8)
 
 # mask = Mask(5, 5)
 
@@ -27,9 +29,10 @@ import constants
 # mask.set_is_enabled(1, 2, 0)
 # mask.set_is_enabled(4, 4, 0)
 
-mask = Mask.from_PNG('./masks/amazeing.png')
+# mask = Mask.from_PNG('./masks/maze_in_maze.png', )
+# grid = MaskedGrid(mask)
 
-grid = MaskedGrid(mask, constants.MODE_DISTANCE)
+# grid = MaskedGrid(mask, constants.MODE_DISTANCE)
 # print(grid.show())
 
 RecursiveBacktracker.on(grid)
@@ -40,10 +43,10 @@ distances = start.distances()
 
 grid.distances = distances.cells
 
-grid.generateImg(50).save('./out/maze.png')
+grid.generateImg(cell_size).save('./out/maze.png')
 
 f = open("./out/maze.svg", "w")
-f.write(grid.generateSvg(50))
+f.write(grid.generateSvg(cell_size))
 f.close()
 
 exit()
