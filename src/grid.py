@@ -84,7 +84,7 @@ class Grid:
         font_color = defaults.font_color_RGB
     
         width = cell_size * self.columns + 2 * half_wall_width
-        height = cell_size * self.columns + 2 * half_wall_width
+        height = cell_size * self.rows + 2 * half_wall_width
 
         img = Image.new('RGBA', (width, height), background_color)
         font = ImageFont.truetype('arial', font_size)

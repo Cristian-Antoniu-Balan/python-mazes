@@ -22,7 +22,7 @@ import constants
 # grid = Grid(10, 10)
 # grid = DistanceGrid(15, 15, constants.MODE_COLOR)
 cell_size = 50
-grid = DistanceGrid(8, 8, constants.MODE_PATH)
+grid = DistanceGrid(5, 5, constants.MODE_PATH)
 
 # mask = Mask(5, 5)
 
@@ -50,8 +50,11 @@ f = open("./out/maze.svg", "w")
 f.write(grid.generateSvg(cell_size))
 f.close()
 
-polar = PolarGrid(5, 5)
+polar = PolarGrid(15, 15)
 RecursiveBacktracker.on(polar)
 polar.generateImg(cell_size).save('./out/polar_test.png')
+f = open("./out/polar_test.svg", "w")
+f.write(polar.generateSvg(cell_size))
+f.close()
 
 exit()
