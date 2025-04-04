@@ -65,6 +65,16 @@ class Grid:
                 end = ' ' if column < self.columns - 1 else '\r\n'
                 print(self.grid[row][column].show() if self.grid[row][column] else 'X,X', end=end)
     
+    def cell_coords(self, cell, cell_size = defaults.cell_size, half_wall_width = defaults.half_wall_width(defaults.cell_size)):
+            x1 = cell.column * cell_size + half_wall_width
+            y1 = cell.row * cell_size + half_wall_width
+            x2 = (cell.column + 1) * cell_size + half_wall_width
+            y2 = (cell.row + 1) * cell_size + half_wall_width
+            xm = (x1 + x2) / 2
+            ym = (y1 + y2) / 2
+
+            return [x1, x2, y1, y2, xm, ym]
+    
     def generateImg(self, cell_size = defaults.cell_size):
         cell_size = defaults.min_cell_size(cell_size)
         background_color = defaults.background_color_RGB
@@ -73,8 +83,8 @@ class Grid:
         font_size = defaults.font_size_ratio * cell_size
         font_color = defaults.font_color_RGB
     
-        width = cell_size * self.columns + half_wall_width
-        height = cell_size * self.columns + half_wall_width
+        width = cell_size * self.columns + 2 * half_wall_width
+        height = cell_size * self.rows + 2 * half_wall_width
 
         img = Image.new('RGBA', (width, height), background_color)
         font = ImageFont.truetype('arial', font_size)
@@ -83,23 +93,21 @@ class Grid:
 
         for cell in self.each_cell():
             if cell is None: continue
-            x1 = cell.column * cell_size
-            y1 = cell.row * cell_size
-            x2 = (cell.column + 1) * cell_size
-            y2 = (cell.row + 1) * cell_size
+            # half_wall_width / 2 >> correction for how ImageDraw..line handles stroke side ??
+            [x1, x2, y1, y2, xm, ym] = self.cell_coords(cell, cell_size, half_wall_width / 2)
 
             match self.mode:
                 case constants.MODE_DISTANCE | constants.MODE_PATH:
                     if self.mode == constants.MODE_PATH and self.contents_of(cell) == 0:
                         ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(255))
-                    ImageDraw.Draw(img).text(((x1 + x2) / 2, (y1 + y2) / 2), f'{self.contents_of(cell)}', font_color, font, 'mm', 1, 'center')
+                    ImageDraw.Draw(img).text((xm, ym), f'{self.contents_of(cell)}', font_color, font, 'mm', 1, 'center')
                 case constants.MODE_COLOR:
                     ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(self.contents_of(cell)))
                     # define a better way to find start and end cells
                     if self.contents_of(cell) == 0:
-                        ImageDraw.Draw(img).text(((x1 + x2) / 2, (y1 + y2) / 2), '0', 'red', font, 'mm', 1, 'center')
+                        ImageDraw.Draw(img).text((xm, ym), '0', 'red', font, 'mm', 1, 'center')
                     if self.contents_of(cell) == 255:
-                        ImageDraw.Draw(img).text(((x1 + x2) / 2, (y1 + y2) / 2), '1', 'red', font, 'mm', 1, 'center')        
+                        ImageDraw.Draw(img).text((xm, ym), '1', 'red', font, 'mm', 1, 'center')        
                 case _:
                     pass
 
@@ -117,16 +125,6 @@ class Grid:
         background_color = defaults.background_color_RGB
         wall_color = defaults.wall_color_RGB
 
-        def cell_coords(cell, cell_size = cell_size, half_wall_width = half_wall_width):
-            x1 = cell.column * cell_size + half_wall_width
-            y1 = cell.row * cell_size + half_wall_width
-            x2 = (cell.column + 1) * cell_size + half_wall_width
-            y2 = (cell.row + 1) * cell_size + half_wall_width
-            xm = (x1 + x2) / 2
-            ym = (y1 + y2) / 2
-
-            return [x1, x2, y1, y2, xm, ym]
-
         total_width = cell_size * self.columns + 2 * half_wall_width
         total_height = cell_size * self.rows + 2 * half_wall_width
 
@@ -141,7 +139,7 @@ class Grid:
         for cell in self.each_cell():
             if cell is None: continue
 
-            [x1, x2, y1, y2, *rest] = cell_coords(cell)
+            [x1, x2, y1, y2, *rest] = self.cell_coords(cell, cell_size, half_wall_width)
 
             if cell.north is None: data.append(line(x1, y1, x2, y1))
             if cell.west is None: data.append(line(x1, y1, x1, y2))
