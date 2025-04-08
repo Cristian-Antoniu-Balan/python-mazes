@@ -1,8 +1,6 @@
 import math
-import random
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 
-from grid import Grid
 from distances_grid import DistanceGrid
 from polar_cell import PolarCell
 import constants
@@ -69,6 +67,10 @@ class PolarGrid(DistanceGrid):
 
         xm = int(center + ((inner_radius + outer_radius) / 2) * math.cos((theta_ccw + theta_cw) / 2))
         ym = int(center + ((inner_radius + outer_radius) / 2) * math.sin((theta_ccw + theta_cw) / 2))
+
+        if cell.row == 0:
+            xm = int(center)
+            ym = int(center)
 
         return [ax, ay, bx, by, cx, cy, dx, dy, xm, ym, inner_radius, outer_radius, theta_ccw, theta_cw, theta]
     
@@ -143,8 +145,8 @@ class PolarGrid(DistanceGrid):
         half_wall_width = defaults.half_wall_width(cell_size)
         background_color = defaults.background_color_RGB
         wall_color = defaults.wall_color_RGB
-        fill_color_end_path = (173, 216, 230)
-        fill_color_path = (144, 238, 144)
+        fill_color_end_path = (144, 238, 144)
+        fill_color_path = (173, 216, 230)
 
         total_height = cell_size * self.rows + 2 * half_wall_width
         total_width = total_height
@@ -169,52 +171,34 @@ class PolarGrid(DistanceGrid):
         
         def cell_text(x = 0, y = 0, text = ""):
             return f"<text x=\"{x}\" y=\"{y}\" text-anchor=\"middle\" alignment-baseline=\"central\">{text}</text>"
-
+        
+        header = [f"<svg height=\"{total_height}\" width=\"{total_width}\" xmlns=\"http://www.w3.org/2000/svg\">"]
         background = f"<rect width=\"100%\" height=\"100%\" fill=\"RGB{background_color}\"/>"
         outer_circle = f"<circle cx=\"{total_width / 2}\" cy=\"{total_width / 2}\" r=\"{total_width / 2}\" fill=\"None\" stroke-width=\"{2 * half_wall_width}\" stroke=\"RGB{wall_color}\"/>"
-
-        data = [f"<svg height=\"{total_height}\" width=\"{total_width}\" xmlns=\"http://www.w3.org/2000/svg\">"]
+        header.append(background)
+        header.append(outer_circle)
+        
+        maze = []
         layer_color = []
         layer_path = []
-        data.append(background)
-        data.append(outer_circle)
+
 
         for cell in self.each_cell():
             if cell is None: continue
 
             [ax, ay, bx, by, cx, cy, dx, dy, xm, ym, inner_radius, outer_radius, theta_ccw, theta_cw, theta] = self.cell_coords(cell, cell_size, 0, total_width / 2)
 
-            # if self.mode == constants.MODE_PATH:
-            #     print('path')
-            #     if (cell.path or cell.end_path):
-            #         print('path / end_path')
-            print('mode >> ', self.mode, cell.path, cell.end_path)
-            if self.mode == constants.MODE_PATH and (cell.path or cell.end_path):
-                print("<< BOTH >>")
-            # print('before >> ', self.mode == constants.MODE_PATH, (cell.path, cell.end_path))
-            # print(cell.path)
-            # print(cell.end_path)
             match self.mode:
                 case constants.MODE_DISTANCE | constants.MODE_PATH:
-                    # print(self.mode == constants.MODE_PATH, (cell.path, cell.end_path))
-                    # print(cell.path)
-                    # print(cell.end_path)
-                    # if self.mode == constants.MODE_PATH:
-                    if self.mode == constants.MODE_PATH and (cell.path == True or cell.end_path == True):
-                        print("!!! HERE !!!")
+                    if self.mode == constants.MODE_PATH and (cell.path or cell.end_path):
                         fill_color = fill_color_path if cell.path else fill_color_end_path
 
                         layer_path.append(cell_text(xm, ym, self.contents_of(cell)))
                         if cell.row == 0:
-                            layer_color.append(cell_center_filled(xm, ym, cell_size))
+                            layer_color.append(cell_center_filled(xm, ym, outer_radius, 0, fill_color=fill_color))
                             continue
                         else:
                             layer_color.append(cell_filled(ax, ay, bx, by, cx, cy, dx, dy, inner_radius, outer_radius, width=0, fill_color=fill_color))
-                        # if cell.path:
-                        #     layer_color.append(cell_filled(ax, ay, bx, by, cx, cy, dx, dy, inner_radius, outer_radius, width=0, fill_color=fill_color_path))
-                        # if cell.end_path:
-                        #     layer_color.append(cell_filled(ax, ay, bx, by, cx, cy, dx, dy, inner_radius, outer_radius, width=0, fill_color=fill_color_end_path))
-                    print("out")
                 # case constants.MODE_COLOR:
                 #     ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(self.contents_of(cell)))
                 #     # define a better way to find start and end cells
@@ -225,17 +209,15 @@ class PolarGrid(DistanceGrid):
                 case _:
                     pass
 
-            if cell.row == 0: continue
+            if not cell.is_linked(cell.inward): maze.append(arc(ax, ay, inner_radius, inner_radius, cx, cy))
+            if not cell.is_linked(cell.cw): maze.append(line(ax, ay, bx, by))
 
-            if not cell.is_linked(cell.inward): data.append(arc(ax, ay, inner_radius, inner_radius, cx, cy))
-            if not cell.is_linked(cell.cw): data.append(line(ax, ay, bx, by))
-
-        maze = data
-        maze_with_color = maze + layer_color
+        maze_with_color = layer_color + maze
         maze_with_color_and_path = maze_with_color + layer_path
         mazes = []
-        for m in [maze, maze_with_color, maze_with_color_and_path]:
-            m.append(f"</svg>")
-            mazes.append("\n".join(m)) 
+        for data in [maze, maze_with_color, maze_with_color_and_path]:
+            file = header + data
+            file.append(f"</svg>")
+            mazes.append("\n".join(file)) 
 
         return mazes

@@ -6,9 +6,17 @@ class DistanceGrid(Grid):
     def __init__(self, rows, columns, mode = ''):
         super().__init__(rows, columns, mode)
         self.distances = None
+        self.path = []
+
+    def set_distances(self, distances = None):
+        if distances:
+            self.distances = distances
+            self.path = self.get_path()
 
     def get_path(self):
         path = []
+        if not self.distances: return path
+
         distance = max(self.distances.values())
         cell = list(self.distances.keys())[list(self.distances.values()).index(distance)]
         path.append(cell)
@@ -27,7 +35,7 @@ class DistanceGrid(Grid):
         path[0].end_path = True
         path[-1].path = False
         path[-1].end_path = True
-        print("path >> ", path)
+
         return path
 
 
@@ -42,11 +50,12 @@ class DistanceGrid(Grid):
                     intensity = round(255 * (self.distances[cell] / maxDistance))
                     return intensity
                 case constants.MODE_PATH:
-                    path = self.get_path()
-                    if cell in path:
-                        return self.distances[cell]
-                    else:
-                        return ''
+                    self.distances[cell] if cell in self.path else ""
+                    # path = self.get_path()
+                    # if cell in path:
+                    #     return self.distances[cell]
+                    # else:
+                    #     return ''
                 case _:
                     return super().contents_of(cell)
             return self.distances[cell]

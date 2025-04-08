@@ -50,13 +50,18 @@ cell_size = 50
 # f.write(grid.generateSvg(cell_size))
 # f.close()
 
-polar = PolarGrid(3, constants.MODE_PATH)
+polar = PolarGrid(10, constants.MODE_PATH)
 RecursiveBacktracker.on(polar)
 
 start = polar.get_random_cell()
 distances = start.distances()
+polar.set_distances(distances.cells)
 
-polar.distances = distances.cells
+# for cell in polar.each_cell():
+#     print(distances.cells[cell])
+
+# for d in polar.distances:
+#     print("Cell // distances RETURN >> ", d.path, d.end_path)
 
 # polar.generateImg(cell_size).save('./out/polar.png')
 mazes = polar.generateSvg(cell_size)
