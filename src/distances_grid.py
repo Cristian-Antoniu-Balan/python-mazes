@@ -22,7 +22,12 @@ class DistanceGrid(Grid):
                     cells.append(link)
             
             path.append(random.choice(cells))
+            path[-1].path = True
         
+        path[0].end_path = True
+        path[-1].path = False
+        path[-1].end_path = True
+        print("path >> ", path)
         return path
 
 

@@ -9,6 +9,8 @@ class Cell:
         self.south = None
         self.east = None
         self.west = None
+        self.end_path = False
+        self.path = False
     
     def show(self):
         return f'{self.row},{self.column}'

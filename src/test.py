@@ -22,7 +22,7 @@ import constants
 # grid = Grid(10, 10)
 # grid = DistanceGrid(15, 15, constants.MODE_COLOR)
 cell_size = 50
-grid = DistanceGrid(5, 5, constants.MODE_PATH)
+# grid = DistanceGrid(5, 5, constants.MODE_PATH)
 
 # mask = Mask(5, 5)
 
@@ -36,25 +36,41 @@ grid = DistanceGrid(5, 5, constants.MODE_PATH)
 # grid = MaskedGrid(mask, constants.MODE_DISTANCE)
 # print(grid.show())
 
-RecursiveBacktracker.on(grid)
+# RecursiveBacktracker.on(grid)
 
 # start = grid.get_cell(0, 0)
-start = grid.get_random_cell()
+# start = grid.get_random_cell()
+# distances = start.distances()
+
+# grid.distances = distances.cells
+
+# grid.generateImg(cell_size).save('./out/maze.png')
+
+# f = open("./out/maze.svg", "w")
+# f.write(grid.generateSvg(cell_size))
+# f.close()
+
+polar = PolarGrid(3, constants.MODE_PATH)
+RecursiveBacktracker.on(polar)
+
+start = polar.get_random_cell()
 distances = start.distances()
 
-grid.distances = distances.cells
+polar.distances = distances.cells
 
-grid.generateImg(cell_size).save('./out/maze.png')
+# polar.generateImg(cell_size).save('./out/polar.png')
+mazes = polar.generateSvg(cell_size)
 
-f = open("./out/maze.svg", "w")
-f.write(grid.generateSvg(cell_size))
+f = open("./out/polar.svg", "w")
+f.write(mazes[0])
 f.close()
 
-polar = PolarGrid(15, 15)
-RecursiveBacktracker.on(polar)
-polar.generateImg(cell_size).save('./out/polar_test.png')
-f = open("./out/polar_test.svg", "w")
-f.write(polar.generateSvg(cell_size))
+f = open("./out/polar_with_color.svg", "w")
+f.write(mazes[1])
+f.close()
+
+f = open("./out/polar_with_color_and_path.svg", "w")
+f.write(mazes[2])
 f.close()
 
 exit()

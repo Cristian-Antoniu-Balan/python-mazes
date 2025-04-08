@@ -3,11 +3,12 @@ import random
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 
 from grid import Grid
+from distances_grid import DistanceGrid
 from polar_cell import PolarCell
 import constants
 import defaults
 
-class PolarGrid(Grid):
+class PolarGrid(DistanceGrid):
     def __init__(self, rows, mode = ''):
         super().__init__(rows, 1, mode = mode)
     
@@ -76,7 +77,7 @@ class PolarGrid(Grid):
         background_color = defaults.background_color_RGB
         wall_color = defaults.wall_color_RGB
         half_wall_width = defaults.half_wall_width(cell_size)
-        font_size = defaults.font_size_ratio * cell_size
+        font_size = defaults.font_size_ratio * cell_size / 2
         font_color = defaults.font_color_RGB
     
         height = cell_size * self.rows
@@ -86,7 +87,14 @@ class PolarGrid(Grid):
         font = ImageFont.truetype('arial', font_size)
         def color(intensity = 0):
             return (ImageColor.getrgb('blue') + (intensity,))
-
+        
+        def drawCell(ax = 0, ay = 0, bx = 0, by = 0, cx = 0, cy = 0, dx = 0, dy = 0, xm = 0, ym = 0, theta_ccw = 0, theta_cw = 0, width = 2 * half_wall_width, color = wall_color, fill_color = wall_color):
+            ImageDraw.Draw(img).line((ax, ay, bx, by), color, 2 * half_wall_width)
+            ImageDraw.Draw(img).line((cx, cy, dx, dy), color, 2 * half_wall_width)
+            ImageDraw.Draw(img).arc(inner_arc_bounding_box, math.degrees(theta_ccw), math.degrees(theta_cw), color, 2 * half_wall_width)
+            ImageDraw.Draw(img).arc(outer_arc_bounding_box, math.degrees(theta_ccw), math.degrees(theta_cw), color, 2 * half_wall_width)
+            # ImageDraw.floodfill(img, (xm, ym), (255, 0, 0))
+        
         ImageDraw.Draw(img).circle([width / 2, width / 2], width / 2, None, wall_color, 2 * half_wall_width)
 
         for cell in self.each_cell():
@@ -95,33 +103,39 @@ class PolarGrid(Grid):
             # half_wall_width / 2 >> correction for how ImageDraw..line handles stroke side ??
             [ax, ay, bx, by, cx, cy, dx, dy, xm, ym, inner_radius, outer_radius, theta_ccw, theta_cw, theta] = self.cell_coords(cell, cell_size, 0, width / 2)
 
-            # fix these for polar coordinates
-            # match self.mode:
-            #     case constants.MODE_DISTANCE | constants.MODE_PATH:
-            #         if self.mode == constants.MODE_PATH and self.contents_of(cell) == 0:
-            #             ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(255))
-            #         ImageDraw.Draw(img).text((xm, ym), f'{self.contents_of(cell)}', font_color, font, 'mm', 1, 'center')
-            #     case constants.MODE_COLOR:
-            #         ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(self.contents_of(cell)))
-            #         # define a better way to find start and end cells
-            #         if self.contents_of(cell) == 0:
-            #             ImageDraw.Draw(img).text((xm, ym), '0', 'red', font, 'mm', 1, 'center')
-            #         if self.contents_of(cell) == 255:
-            #             ImageDraw.Draw(img).text((xm, ym), '1', 'red', font, 'mm', 1, 'center')        
-            #     case _:
-            #         pass
+            inner_arc_bounding_box = [(width / 2 - inner_radius),
+                                      (width / 2 - inner_radius),
+                                      (width / 2 + inner_radius),
+                                      (width / 2 + inner_radius)]
 
-            arc_bounding_box = [(width / 2 - inner_radius),
-                                (width / 2 - inner_radius),
-                                (width / 2 + inner_radius),
-                                (width / 2 + inner_radius)]
+            outer_arc_bounding_box = [(width / 2 - outer_radius),
+                                      (width / 2 - outer_radius),
+                                      (width / 2 + outer_radius),
+                                      (width / 2 + outer_radius)]
             
             if not cell.is_linked(cell.inward):
-                ImageDraw.Draw(img).arc(arc_bounding_box, math.degrees(theta_ccw), math.degrees(theta_cw), wall_color, 2 * half_wall_width)
+                ImageDraw.Draw(img).arc(inner_arc_bounding_box, math.degrees(theta_ccw), math.degrees(theta_cw), wall_color, 2 * half_wall_width)
             
             if not cell.is_linked(cell.cw):
                 ImageDraw.Draw(img).line((ax, ay, bx, by), wall_color, 2 * half_wall_width)
 
+            # fix these for polar coordinates
+            match self.mode:
+                case constants.MODE_DISTANCE | constants.MODE_PATH:
+                    if self.mode == constants.MODE_PATH and self.contents_of(cell) == 0:
+                        drawCell(ax, ay, bx, by, cx, cy, dx, dy, xm, ym, theta_ccw, theta_cw, color = 'RGB(255, 0, 0)', fill_color=(255, 0, 0))
+                    ImageDraw.Draw(img).text((xm, ym), f'{self.contents_of(cell)}', font_color, font, 'mm', 1, 'center')
+                # case constants.MODE_COLOR:
+                #     ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(self.contents_of(cell)))
+                #     # define a better way to find start and end cells
+                #     if self.contents_of(cell) == 0:
+                #         ImageDraw.Draw(img).text((xm, ym), '0', 'red', font, 'mm', 1, 'center')
+                #     if self.contents_of(cell) == 255:
+                #         ImageDraw.Draw(img).text((xm, ym), '1', 'red', font, 'mm', 1, 'center')
+                case _:
+                    pass
+        ImageDraw.Draw(img).rectangle((width / 2 - 10, width / 2 - 10, width / 2 + 10, width / 2 + 10), None, 'blue', 4)
+        ImageDraw.floodfill(img, xy=(width / 2, width / 2), value=(255, 0, 0), thresh=200)
         return img
     
     def generateSvg(self, cell_size = defaults.cell_size):
@@ -129,6 +143,8 @@ class PolarGrid(Grid):
         half_wall_width = defaults.half_wall_width(cell_size)
         background_color = defaults.background_color_RGB
         wall_color = defaults.wall_color_RGB
+        fill_color_end_path = (173, 216, 230)
+        fill_color_path = (144, 238, 144)
 
         total_height = cell_size * self.rows + 2 * half_wall_width
         total_width = total_height
@@ -139,22 +155,87 @@ class PolarGrid(Grid):
         def arc(x_start = 0, y_start = 0, rx = 0, ry = 0, x_end = 0, y_end = 0, width = 2 * half_wall_width, color = wall_color):
             return f"<path d=\"M {x_start} {y_start} A {rx} {ry} 0 0 1 {x_end} {y_end}\" fill=\"None\" stroke-width=\"{width}\" stroke=\"RGB{color}\" />"
 
+        def cell_filled(ax = 0, ay = 0, bx = 0, by = 0, cx = 0, cy = 0, dx = 0, dy = 0, inner_radius = 0, outer_radius = 0, width = 2 * half_wall_width, color = wall_color, fill_color = wall_color):
+            return f"""<path d=\"
+                            M {ax} {ay}
+                            A {inner_radius} {inner_radius} 0 0 1 {cx} {cy}
+                            L {dx} {dy}
+                            A {outer_radius} {outer_radius} 0 0 0 {bx} {by}
+                            Z\"
+                    fill=\"RGB{fill_color}\" stroke-width=\"{width}\" stroke=\"RGB{color}\" />"""
+
+        def cell_center_filled(cx = 0, cy = 0, r = 0, width = 2 * half_wall_width, color = wall_color, fill_color = wall_color):
+            return f"<circle cx=\"{cx}\" cy=\"{cy}\" r=\"{r}\" fill=\"RGB{fill_color}\" stroke-width=\"{width}\" stroke=\"RGB{color}\"/>"
+        
+        def cell_text(x = 0, y = 0, text = ""):
+            return f"<text x=\"{x}\" y=\"{y}\" text-anchor=\"middle\" alignment-baseline=\"central\">{text}</text>"
+
         background = f"<rect width=\"100%\" height=\"100%\" fill=\"RGB{background_color}\"/>"
         outer_circle = f"<circle cx=\"{total_width / 2}\" cy=\"{total_width / 2}\" r=\"{total_width / 2}\" fill=\"None\" stroke-width=\"{2 * half_wall_width}\" stroke=\"RGB{wall_color}\"/>"
 
         data = [f"<svg height=\"{total_height}\" width=\"{total_width}\" xmlns=\"http://www.w3.org/2000/svg\">"]
+        layer_color = []
+        layer_path = []
         data.append(background)
         data.append(outer_circle)
 
         for cell in self.each_cell():
             if cell is None: continue
-            if cell.row == 0: continue
 
             [ax, ay, bx, by, cx, cy, dx, dy, xm, ym, inner_radius, outer_radius, theta_ccw, theta_cw, theta] = self.cell_coords(cell, cell_size, 0, total_width / 2)
+
+            # if self.mode == constants.MODE_PATH:
+            #     print('path')
+            #     if (cell.path or cell.end_path):
+            #         print('path / end_path')
+            print('mode >> ', self.mode, cell.path, cell.end_path)
+            if self.mode == constants.MODE_PATH and (cell.path or cell.end_path):
+                print("<< BOTH >>")
+            # print('before >> ', self.mode == constants.MODE_PATH, (cell.path, cell.end_path))
+            # print(cell.path)
+            # print(cell.end_path)
+            match self.mode:
+                case constants.MODE_DISTANCE | constants.MODE_PATH:
+                    # print(self.mode == constants.MODE_PATH, (cell.path, cell.end_path))
+                    # print(cell.path)
+                    # print(cell.end_path)
+                    # if self.mode == constants.MODE_PATH:
+                    if self.mode == constants.MODE_PATH and (cell.path == True or cell.end_path == True):
+                        print("!!! HERE !!!")
+                        fill_color = fill_color_path if cell.path else fill_color_end_path
+
+                        layer_path.append(cell_text(xm, ym, self.contents_of(cell)))
+                        if cell.row == 0:
+                            layer_color.append(cell_center_filled(xm, ym, cell_size))
+                            continue
+                        else:
+                            layer_color.append(cell_filled(ax, ay, bx, by, cx, cy, dx, dy, inner_radius, outer_radius, width=0, fill_color=fill_color))
+                        # if cell.path:
+                        #     layer_color.append(cell_filled(ax, ay, bx, by, cx, cy, dx, dy, inner_radius, outer_radius, width=0, fill_color=fill_color_path))
+                        # if cell.end_path:
+                        #     layer_color.append(cell_filled(ax, ay, bx, by, cx, cy, dx, dy, inner_radius, outer_radius, width=0, fill_color=fill_color_end_path))
+                    print("out")
+                # case constants.MODE_COLOR:
+                #     ImageDraw.Draw(img).rectangle((x1, y1, x2, y2),color(self.contents_of(cell)))
+                #     # define a better way to find start and end cells
+                #     if self.contents_of(cell) == 0:
+                #         ImageDraw.Draw(img).text((xm, ym), '0', 'red', font, 'mm', 1, 'center')
+                #     if self.contents_of(cell) == 255:
+                #         ImageDraw.Draw(img).text((xm, ym), '1', 'red', font, 'mm', 1, 'center')
+                case _:
+                    pass
+
+            if cell.row == 0: continue
 
             if not cell.is_linked(cell.inward): data.append(arc(ax, ay, inner_radius, inner_radius, cx, cy))
             if not cell.is_linked(cell.cw): data.append(line(ax, ay, bx, by))
 
-        data.append(f"</svg>")
+        maze = data
+        maze_with_color = maze + layer_color
+        maze_with_color_and_path = maze_with_color + layer_path
+        mazes = []
+        for m in [maze, maze_with_color, maze_with_color_and_path]:
+            m.append(f"</svg>")
+            mazes.append("\n".join(m)) 
 
-        return "\n".join(data)
+        return mazes
