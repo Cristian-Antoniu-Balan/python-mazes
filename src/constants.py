@@ -1,3 +1,6 @@
 MODE_DISTANCE = 'distance'
 MODE_COLOR = 'color'
 MODE_PATH = 'path'
+MODE_FLOOD = 'flood'
+
+MODES = [MODE_DISTANCE, MODE_COLOR, MODE_PATH, MODE_FLOOD]
